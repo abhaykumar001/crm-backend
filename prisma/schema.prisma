@@ -1,0 +1,999 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                       Int                    @id @default(autoincrement())
+  name                     String
+  email                    String                 @unique
+  emailVerifiedAt          DateTime?              @map("email_verified_at")
+  password                 String
+  isActive                 Boolean                @default(true) @map("is_active")
+  status                   String?                @default("Active") // Active/Inactive/On Leave
+  availability             String?                @default("Available") // Available/Busy/On Leave
+  mobileNumber             String?                @map("mobile_number")
+  alternateContact         String?                @map("alternate_contact")
+  profileImage             String?                @map("profile_image")
+  designation              String?
+  designationId            Int?                   @map("designation_id")
+  joiningDate              DateTime?              @map("joining_date")
+  dateOfBirth              DateTime?              @map("date_of_birth")
+  nationality              String?
+  maritalStatus            String?                @map("marital_status")
+  lastLoginAt              DateTime?              @map("last_login_at")
+  reportingTo              Int?                   @map("reporting_to")
+  isExcluded               Boolean                @default(false) @map("is_excluded") // Exclude from auto-assignment
+  permissions              String?
+  permissionMenu           Json?                  @map("permission_menu")
+  rememberToken            String?                @map("remember_token")
+  deviceToken              String?                @map("device_token") // FCM token
+  deviceType               String?                @map("device_type") // iOS/Android
+  address                  String?
+  addressInUae             String?                @map("address_in_uae")
+  emergencyContactName     String?                @map("emergency_contact_name")
+  emergencyContactPhone    String?                @map("emergency_contact_phone")
+  emergencyContactRelation String?                @map("emergency_contact_relation")
+  visaType                 String?                @map("visa_type")
+  educationDetails         String?                @map("education_details")
+  medicalConditions        String?                @map("medical_conditions")
+  companyId                Int?                   @map("company_id")
+  employeeId               String?                @map("employee_id")
+  department               String?
+  createdAt                DateTime               @default(now()) @map("created_at")
+  updatedAt                DateTime               @updatedAt @map("updated_at")
+  deletedAt                DateTime?              @map("deleted_at")
+  agentLocations           AgentLocation[]
+  agentPaymentHistory      AgentPaymentHistory[]
+  assignedAgentHistory     AssignedAgentHistory[]
+  callLogs                 CallLog[]
+  callingHistory           CallingHistory[]
+  dailyActivities          DailyAgentActivity[]
+  deals                    Deal[]
+  saleAgents               SaleAgent[] // Multi-agent commission
+  deviceNotifications      DeviceNotification[]
+  leads                    Lead[]                 @relation("LeadAgent")
+  leadAgents               LeadAgent[] // Multi-agent lead assignment
+  assignedLeads            Lead[]                 @relation("AssignedLeads")
+  leaves                   Leave[]
+  activities               LogActivity[]
+  notes                    Note[]
+  refreshTokens            RefreshToken[]
+  saleCommissions          SaleCommission[]
+  sourceUsers              SourceUser[]
+  travelInformation        TravelInformation[]
+  languages                UserLanguage[]
+  roles                    UserRole[]
+  penalties                PenaltyLog[]
+  managedCampaigns         CampaignManager[]
+  reportingToUser          User?                  @relation("UserReporting", fields: [reportingTo], references: [id])
+  subordinates             User[]                 @relation("UserReporting")
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userId    Int      @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model Role {
+  id          Int                 @id @default(autoincrement())
+  name        String              @unique
+  guardName   String?             @map("guard_name")
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
+  permissions RoleHasPermission[]
+  userRoles   UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  id     Int  @id @default(autoincrement())
+  userId Int  @map("user_id")
+  roleId Int  @map("role_id")
+  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+model Permission {
+  id              Int                 @id @default(autoincrement())
+  name            String              @unique
+  guardName       String?             @map("guard_name")
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+  rolePermissions RoleHasPermission[]
+
+  @@map("permissions")
+}
+
+model RoleHasPermission {
+  permissionId Int        @map("permission_id")
+  roleId       Int        @map("role_id")
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([permissionId, roleId])
+  @@map("role_has_permissions")
+}
+
+model Lead {
+  id                  Int                    @id @default(autoincrement())
+  name                String
+  email               String?
+  mobileNumber        String?                @map("mobile_number")
+  alternateNumber     String?                @map("alternate_number")
+  additionalPhone     String?                @map("additional_phone")
+  whatsappNumber      String?                @map("whatsapp_number")
+  address             String?
+  city                String?
+  state               String?
+  pincode             String?
+  area                String?
+  occupation          String?
+  designation         String?
+  companyName         String?                @map("company_name")
+  dateOfBirth         DateTime?              @map("date_of_birth")
+  nationality         String?
+  sourceId            Int?                   @map("source_id")
+  subSourceId         Int?                   @map("sub_source_id")
+  campaignId          Int?                   @map("campaign_id")
+  eventId             Int?                   @map("event_id")
+  projectId           Int?                   @map("project_id")
+  statusId            Int?                   @map("status_id")
+  subStatusId         Int?                   @map("sub_status_id")
+  superStatusId       Int?                   @map("super_status_id")
+  reasonId            Int?                   @map("reason_id")
+  agentId             Int?                   @map("agent_id")
+  assignedBy          Int?                   @map("assigned_by")
+  budget              Decimal?               @db.Decimal(15, 2)
+  budgetMin           Decimal?               @map("budget_min") @db.Decimal(15, 2)
+  budgetMax           Decimal?               @map("budget_max") @db.Decimal(15, 2)
+  requirement         String?
+  preferences         Json? // Property preferences
+  interestedIn        String?                @map("interested_in")
+  remarks             String?
+  followUpDate        DateTime?              @map("follow_up_date")
+  lastContactDate     DateTime?              @map("last_contact_date")
+  meetingTime         DateTime?              @map("meeting_time")
+  onboardingDate      DateTime?              @map("onboarding_date") // Deal closure
+  isActive            Boolean                @default(true) @map("is_active")
+  type                String?                @default("Active") // Active/Closed/Calling/Do not call
+  isFresh             Boolean                @default(true) @map("is_fresh")
+  activityCheck       Boolean                @default(false) @map("activity_check") // Rotation flag
+  assignLeadsCount    Int                    @default(0) @map("assign_leads_count") // Assignment attempts
+  priority            String?                @default("medium")
+  leadScore           Int?                   @default(0) @map("lead_score")
+  propertyType        String?                @map("property_type") // Rent/Sale
+  leadMarket          String?                @map("lead_market") // Primary/Secondary
+  propertyRef         String?                @map("property_ref")
+  sourcePortal        String?                @map("source_portal") // Property Finder, Dubizzle, Bayut
+  noAnswerStatusCount Int                    @default(0) @map("no_answer_status_count")
+  needWhatsapp        Boolean                @default(false) @map("need_whatsapp")
+  deletedReason       String?                @map("deleted_reason")
+  createdAt           DateTime               @default(now()) @map("created_at")
+  updatedAt           DateTime               @updatedAt @map("updated_at")
+  deletedAt           DateTime?              @map("deleted_at")
+  assignedHistory     AssignedAgentHistory[]
+  callLogs            CallLog[]
+  callingHistory      CallingHistory[]
+  closedLeads         ClosedLead[]
+  deals               Deal[]
+  actionHistory       LeadActionHistory[]
+  leadAgents          LeadAgent[] // Multi-agent assignment
+  agent               User?                  @relation("LeadAgent", fields: [agentId], references: [id])
+  assignedByUser      User?                  @relation("AssignedLeads", fields: [assignedBy], references: [id])
+  campaign            Campaign?              @relation(fields: [campaignId], references: [id])
+  event               Event?                 @relation(fields: [eventId], references: [id])
+  project             Project?               @relation(fields: [projectId], references: [id])
+  reason              Reason?                @relation(fields: [reasonId], references: [id])
+  source              Source?                @relation(fields: [sourceId], references: [id])
+  status              Status?                @relation(fields: [statusId], references: [id])
+  subSource           SubSource?             @relation(fields: [subSourceId], references: [id])
+  subStatus           SubStatus?             @relation(fields: [subStatusId], references: [id])
+  superStatus         SuperStatus?           @relation(fields: [superStatusId], references: [id])
+  activities          LogActivity[]
+  notes               Note[]
+
+  @@map("leads")
+}
+
+model Source {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique
+  campaignId  Int?         @map("campaign_id") // Parent campaign
+  type        String?      @default("Normal") // Normal/Campaign
+  runAllTime  Boolean      @default(false) @map("run_all_time") // 24/7 for international
+  isCroned    Boolean      @default(false) @map("is_croned") // Auto-distribution flag
+  priority    Int?         @default(0) // Distribution priority
+  isActive    Boolean      @default(true) @map("is_active")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  leads       Lead[]
+  campaign    Campaign?    @relation(fields: [campaignId], references: [id])
+  sourceUsers SourceUser[]
+  subSources  SubSource[]
+
+  @@map("sources")
+}
+
+model SubSource {
+  id        Int      @id @default(autoincrement())
+  sourceId  Int      @map("source_id")
+  name      String
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  leads     Lead[]
+  source    Source   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceId, name])
+  @@map("sub_sources")
+}
+
+model Status {
+  id          Int         @id @default(autoincrement())
+  name        String      @unique
+  color       String?
+  isActive    Boolean     @default(true) @map("is_active")
+  sortOrder   Int?        @map("sort_order")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+  leads       Lead[]
+  subStatuses SubStatus[]
+
+  @@map("statuses")
+}
+
+model SubStatus {
+  id        Int      @id @default(autoincrement())
+  statusId  Int      @map("status_id")
+  name      String
+  color     String?
+  isActive  Boolean  @default(true) @map("is_active")
+  sortOrder Int?     @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  leads     Lead[]
+  status    Status   @relation(fields: [statusId], references: [id], onDelete: Cascade)
+
+  @@unique([statusId, name])
+  @@map("sub_statuses")
+}
+
+model SuperStatus {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  color     String?
+  isActive  Boolean  @default(true) @map("is_active")
+  sortOrder Int?     @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  leads     Lead[]
+
+  @@map("super_statuses")
+}
+
+model Reason {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  leads     Lead[]
+
+  @@map("reasons")
+}
+
+model Project {
+  id             Int              @id @default(autoincrement())
+  name           String
+  description    String?
+  developerId    Int?             @map("developer_id")
+  location       String?
+  city           String?
+  state          String?
+  pincode        String?
+  projectType    String?          @map("project_type")
+  status         String?          @default("active")
+  launchDate     DateTime?        @map("launch_date")
+  completionDate DateTime?        @map("completion_date")
+  minPrice       Decimal?         @map("min_price") @db.Decimal(15, 2)
+  maxPrice       Decimal?         @map("max_price") @db.Decimal(15, 2)
+  images         String?
+  brochure       String?
+  isActive       Boolean          @default(true) @map("is_active")
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+  deals          Deal[]
+  leads          Lead[]
+  amenities      ProjectAmenity[]
+  developer      Developer?       @relation(fields: [developerId], references: [id])
+
+  @@map("projects")
+}
+
+model Developer {
+  id          Int       @id @default(autoincrement())
+  name        String
+  description String?
+  contactInfo String?   @map("contact_info")
+  logo        String?
+  website     String?
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  projects    Project[]
+
+  @@map("developers")
+}
+
+model Amenity {
+  id        Int              @id @default(autoincrement())
+  name      String           @unique
+  icon      String?
+  isActive  Boolean          @default(true) @map("is_active")
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+  projects  ProjectAmenity[]
+
+  @@map("amenities")
+}
+
+model ProjectAmenity {
+  projectId Int     @map("project_id")
+  amenityId Int     @map("amenity_id")
+  amenity   Amenity @relation(fields: [amenityId], references: [id], onDelete: Cascade)
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, amenityId])
+  @@map("project_amenities")
+}
+
+model Deal {
+  id                Int              @id @default(autoincrement())
+  leadId            Int              @map("lead_id")
+  projectId         Int              @map("project_id")
+  developerId       Int?             @map("developer_id")
+  agentId           Int              @map("agent_id")
+  saleType          String?          @default("Primary") @map("sale_type") // Primary/Secondary/Rental
+  areaSquareFeet    Decimal?         @map("area_square_feet") @db.Decimal(10, 2)
+  perUnitPrice      Decimal?         @map("per_unit_price") @db.Decimal(15, 2)
+  dealValue         Decimal          @map("deal_value") @db.Decimal(15, 2)
+  totalSaleAmount   Decimal?         @map("total_sale_amount") @db.Decimal(15, 2)
+  downPayment       Decimal?         @map("down_payment") @db.Decimal(15, 2)
+  commissionRate    Decimal          @map("commission_rate") @db.Decimal(5, 2)
+  commissionAmount  Decimal          @map("commission_amount") @db.Decimal(15, 2)
+  totalCommission   Decimal?         @map("total_commission") @db.Decimal(15, 2)
+  companyCommission Decimal?         @map("company_commission") @db.Decimal(15, 2)
+  agentCommission   Decimal?         @map("agent_commission") @db.Decimal(15, 2)
+  status            String           @default("pending")
+  approvalStatus    String?          @default("Pending") @map("approval_status") // Pending/Approved/Rejected
+  approvedBy        Int?             @map("approved_by")
+  approvedAt        DateTime?        @map("approved_at")
+  dealDate          DateTime?        @map("deal_date")
+  bookingDate       DateTime?        @map("booking_date")
+  contractDate      DateTime?        @map("contract_date")
+  handoverDate      DateTime?        @map("handover_date")
+  closingDate       DateTime?        @map("closing_date")
+  paymentTerms      String?          @map("payment_terms")
+  paymentPlan       Json?            @map("payment_plan")
+  documents         Json?
+  notes             String?
+  isActive          Boolean          @default(true) @map("is_active")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+  agent             User             @relation(fields: [agentId], references: [id])
+  lead              Lead             @relation(fields: [leadId], references: [id])
+  project           Project          @relation(fields: [projectId], references: [id])
+  saleAgents        SaleAgent[] // Multi-agent commission split
+  paymentHistory    PaymentHistory[]
+  commissions       SaleCommission[]
+
+  @@map("deals")
+}
+
+model CallLog {
+  id            Int       @id @default(autoincrement())
+  leadId        Int       @map("lead_id")
+  agentId       Int       @map("agent_id")
+  callType      String    @map("call_type")
+  callDuration  Int?      @map("call_duration")
+  callStatus    String    @map("call_status")
+  notes         String?
+  recordingPath String?   @map("recording_path")
+  callStartTime DateTime  @map("call_start_time")
+  callEndTime   DateTime? @map("call_end_time")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  agent         User      @relation(fields: [agentId], references: [id])
+  lead          Lead      @relation(fields: [leadId], references: [id])
+
+  @@map("call_logs")
+}
+
+model Note {
+  id        Int      @id @default(autoincrement())
+  leadId    Int      @map("lead_id")
+  userId    Int      @map("user_id")
+  content   String
+  isPrivate Boolean  @default(false) @map("is_private")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("notes")
+}
+
+model LogActivity {
+  id          Int      @id @default(autoincrement())
+  logName     String?  @map("log_name")
+  description String
+  subjectType String?  @map("subject_type")
+  subjectId   Int?     @map("subject_id")
+  causerId    Int?     @map("causer_id")
+  properties  Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  causer      User?    @relation(fields: [causerId], references: [id])
+  lead        Lead?    @relation(fields: [subjectId], references: [id])
+
+  @@map("log_activities")
+}
+
+model LeadActionHistory {
+  id         Int      @id @default(autoincrement())
+  leadId     Int      @map("lead_id")
+  action     String
+  oldValue   String?  @map("old_value")
+  newValue   String?  @map("new_value")
+  actionBy   Int      @map("action_by")
+  actionDate DateTime @default(now()) @map("action_date")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  lead       Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@map("lead_action_histories")
+}
+
+model AssignedAgentHistory {
+  id           Int       @id @default(autoincrement())
+  leadId       Int       @map("lead_id")
+  agentId      Int       @map("agent_id")
+  assignedBy   Int       @map("assigned_by")
+  assignedAt   DateTime  @default(now()) @map("assigned_at")
+  unassignedAt DateTime? @map("unassigned_at")
+  reason       String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  agent        User      @relation(fields: [agentId], references: [id])
+  lead         Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@map("assigned_agent_histories")
+}
+
+model CallingHistory {
+  id        Int      @id @default(autoincrement())
+  leadId    Int      @map("lead_id")
+  agentId   Int      @map("agent_id")
+  callDate  DateTime @default(now()) @map("call_date")
+  callTime  String   @map("call_time")
+  duration  Int?
+  status    String
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  agent     User     @relation(fields: [agentId], references: [id])
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@map("calling_histories")
+}
+
+model AgentLocation {
+  id        Int      @id @default(autoincrement())
+  agentId   Int      @map("agent_id")
+  latitude  Decimal  @db.Decimal(10, 8)
+  longitude Decimal  @db.Decimal(11, 8)
+  address   String?
+  timestamp DateTime @default(now())
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  agent     User     @relation(fields: [agentId], references: [id])
+
+  @@map("agent_locations")
+}
+
+model AgentPaymentHistory {
+  id            Int      @id @default(autoincrement())
+  agentId       Int      @map("agent_id")
+  paymentType   String   @map("payment_type")
+  amount        Decimal  @db.Decimal(15, 2)
+  paymentDate   DateTime @map("payment_date")
+  paymentMethod String?  @map("payment_method")
+  transactionId String?  @map("transaction_id")
+  status        String   @default("pending")
+  notes         String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  agent         User     @relation(fields: [agentId], references: [id])
+
+  @@map("agent_payment_histories")
+}
+
+model DailyAgentActivity {
+  id                Int      @id @default(autoincrement())
+  agentId           Int      @map("agent_id")
+  activityDate      DateTime @map("activity_date")
+  leadsContacted    Int      @default(0) @map("leads_contacted")
+  callsMade         Int      @default(0) @map("calls_made")
+  callsAnswered     Int      @default(0) @map("calls_answered")
+  meetingsScheduled Int      @default(0) @map("meetings_scheduled")
+  dealsClosed       Int      @default(0) @map("deals_closed")
+  workingHours      Decimal? @map("working_hours") @db.Decimal(4, 2)
+  notes             String?
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  agent             User     @relation(fields: [agentId], references: [id])
+
+  @@unique([agentId, activityDate])
+  @@map("daily_agent_activities")
+}
+
+model SaleCommission {
+  id               Int       @id @default(autoincrement())
+  dealId           Int       @map("deal_id")
+  agentId          Int       @map("agent_id")
+  commissionType   String    @map("commission_type")
+  commissionRate   Decimal   @map("commission_rate") @db.Decimal(5, 2)
+  commissionAmount Decimal   @map("commission_amount") @db.Decimal(15, 2)
+  status           String    @default("pending")
+  approvedBy       Int?      @map("approved_by")
+  approvedAt       DateTime? @map("approved_at")
+  paidAt           DateTime? @map("paid_at")
+  paymentMethod    String?   @map("payment_method")
+  transactionId    String?   @map("transaction_id")
+  notes            String?
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  agent            User      @relation(fields: [agentId], references: [id])
+  deal             Deal      @relation(fields: [dealId], references: [id])
+
+  @@map("sale_commissions")
+}
+
+model PaymentHistory {
+  id            Int      @id @default(autoincrement())
+  dealId        Int      @map("deal_id")
+  paymentAmount Decimal  @map("payment_amount") @db.Decimal(15, 2)
+  paymentDate   DateTime @map("payment_date")
+  paymentMethod String   @map("payment_method")
+  transactionId String?  @map("transaction_id")
+  paymentStatus String   @default("completed") @map("payment_status")
+  receiptNumber String?  @map("receipt_number")
+  notes         String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  deal          Deal     @relation(fields: [dealId], references: [id])
+
+  @@map("payment_histories")
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  title     String
+  message   String
+  type      String
+  isRead    Boolean  @default(false) @map("is_read")
+  data      Json?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("notifications")
+}
+
+model DeviceNotification {
+  id          Int       @id @default(autoincrement())
+  userId      Int       @map("user_id")
+  deviceToken String    @map("device_token")
+  deviceType  String    @map("device_type")
+  title       String
+  body        String
+  data        Json?
+  status      String    @default("sent")
+  sentAt      DateTime  @default(now()) @map("sent_at")
+  deliveredAt DateTime? @map("delivered_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@map("device_notifications")
+}
+
+model Leave {
+  id              Int       @id @default(autoincrement())
+  userId          Int       @map("user_id")
+  leaveTypeId     Int       @map("leave_type_id")
+  startDate       DateTime  @map("start_date")
+  endDate         DateTime  @map("end_date")
+  totalDays       Int       @map("total_days")
+  reason          String
+  status          String    @default("pending")
+  approvedBy      Int?      @map("approved_by")
+  approvedAt      DateTime? @map("approved_at")
+  rejectionReason String?   @map("rejection_reason")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  leaveType       LeaveType @relation(fields: [leaveTypeId], references: [id])
+  user            User      @relation(fields: [userId], references: [id])
+
+  @@map("leaves")
+}
+
+model LeaveType {
+  id             Int      @id @default(autoincrement())
+  name           String   @unique
+  description    String?
+  maxDaysPerYear Int?     @map("max_days_per_year")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  leaves         Leave[]
+
+  @@map("leave_types")
+}
+
+model Holiday {
+  id        Int      @id @default(autoincrement())
+  name      String
+  date      DateTime
+  type      String   @default("public")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("holidays")
+}
+
+model Language {
+  id            Int            @id @default(autoincrement())
+  name          String         @unique
+  code          String         @unique
+  isActive      Boolean        @default(true) @map("is_active")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  userLanguages UserLanguage[]
+
+  @@map("languages")
+}
+
+model UserLanguage {
+  userId     Int      @map("user_id")
+  languageId Int      @map("language_id")
+  language   Language @relation(fields: [languageId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, languageId])
+  @@map("user_languages")
+}
+
+model SourceUser {
+  userId         Int      @map("user_id")
+  sourceId       Int      @map("source_id")
+  nextLeadAssign Boolean  @default(false) @map("next_lead_assign") // Round-robin rotation flag
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  source         Source   @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, sourceId])
+  @@map("source_users")
+}
+
+model TravelInformation {
+  id            Int       @id @default(autoincrement())
+  userId        Int       @map("user_id")
+  fromLocation  String    @map("from_location")
+  toLocation    String    @map("to_location")
+  travelDate    DateTime  @map("travel_date")
+  returnDate    DateTime? @map("return_date")
+  purpose       String
+  transportMode String    @map("transport_mode")
+  status        String    @default("planned")
+  expenses      Decimal?  @db.Decimal(10, 2)
+  notes         String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  user          User      @relation(fields: [userId], references: [id])
+
+  @@map("travel_information")
+}
+
+model ClosedLead {
+  id          Int      @id @default(autoincrement())
+  leadId      Int      @map("lead_id")
+  closedBy    Int      @map("closed_by")
+  closedAt    DateTime @default(now()) @map("closed_at")
+  reason      String
+  finalStatus String   @map("final_status")
+  dealValue   Decimal? @map("deal_value") @db.Decimal(15, 2)
+  notes       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  lead        Lead     @relation(fields: [leadId], references: [id])
+
+  @@map("closed_leads")
+}
+
+model Setting {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique
+  value       String
+  type        String   @default("string")
+  category    String?
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("settings")
+}
+
+model EmailTemplate {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  subject   String
+  body      String
+  variables String?
+  type      String
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("email_templates")
+}
+
+model SmsNotification {
+  id            Int       @id @default(autoincrement())
+  phoneNumber   String    @map("phone_number")
+  message       String
+  status        String    @default("pending")
+  providerId    String?   @map("provider_id")
+  sentAt        DateTime? @map("sent_at")
+  deliveredAt   DateTime? @map("delivered_at")
+  failureReason String?   @map("failure_reason")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@map("sms_notifications")
+}
+
+model WhatsappNotification {
+  id            Int       @id @default(autoincrement())
+  phoneNumber   String    @map("phone_number")
+  message       String
+  messageType   String    @default("text") @map("message_type")
+  templateName  String?   @map("template_name")
+  status        String    @default("pending")
+  providerId    String?   @map("provider_id")
+  sentAt        DateTime? @map("sent_at")
+  deliveredAt   DateTime? @map("delivered_at")
+  failureReason String?   @map("failure_reason")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@map("whatsapp_notifications")
+}
+
+// ==================== CRITICAL MISSING TABLES ====================
+
+// Multi-Agent Lead Assignment System
+model LeadAgent {
+  id               Int       @id @default(autoincrement())
+  leadId           Int       @map("lead_id")
+  userId           Int       @map("user_id")
+  isAccepted       Int       @default(0) @map("is_accepted") // -1=rejected, 0=pending, 1=accepted
+  assignTime       DateTime  @default(now()) @map("assign_time")
+  lastActivityTime DateTime? @map("last_activity_time")
+  activityCheck    Boolean   @default(false) @map("activity_check")
+  deletedAt        DateTime? @map("deleted_at") // Soft delete for reassignment history
+  deletedReason    String?   @map("deleted_reason")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+  lead             Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  user             User      @relation(fields: [userId], references: [id])
+
+  @@map("lead_agents")
+}
+
+// Campaign Management System
+model Campaign {
+  id              Int               @id @default(autoincrement())
+  name            String
+  secondaryName   String?           @map("secondary_name")
+  description     String?
+  startDate       DateTime?         @map("start_date")
+  endDate         DateTime?         @map("end_date")
+  budget          Decimal?          @db.Decimal(15, 2)
+  status          Int               @default(1) // 1=Active, 0=Inactive
+  isInternational Boolean           @default(false) @map("is_international") // 24/7 flag
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  leads           Lead[]
+  sources         Source[]
+  events          Event[]
+  managers        CampaignManager[]
+
+  @@map("campaigns")
+}
+
+model CampaignManager {
+  id         Int      @id @default(autoincrement())
+  campaignId Int      @map("campaign_id")
+  userId     Int      @map("user_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id])
+
+  @@unique([campaignId, userId])
+  @@map("campaign_managers")
+}
+
+// Event Management
+model Event {
+  id          Int       @id @default(autoincrement())
+  campaignId  Int?      @map("campaign_id")
+  name        String
+  description String?
+  location    String?
+  startDate   DateTime  @map("start_date")
+  endDate     DateTime? @map("end_date")
+  eventType   String?   @map("event_type")
+  status      Int       @default(1)
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  leads       Lead[]
+  campaign    Campaign? @relation(fields: [campaignId], references: [id])
+
+  @@map("events")
+}
+
+// Multi-Agent Commission Split
+model SaleAgent {
+  id         Int       @id @default(autoincrement())
+  dealId     Int       @map("deal_id")
+  agentId    Int       @map("agent_id")
+  brokerage  Decimal   @db.Decimal(5, 2) // Percentage split
+  amount     Decimal?  @db.Decimal(15, 2) // Calculated commission amount
+  isApproved Boolean   @default(false) @map("is_approved")
+  approvedBy Int?      @map("approved_by")
+  approvedAt DateTime? @map("approved_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deal       Deal      @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  agent      User      @relation(fields: [agentId], references: [id])
+
+  @@map("sale_agents")
+}
+
+// Commission Slab System
+model CommissionSlab {
+  id            Int      @id @default(autoincrement())
+  designationId Int?     @map("designation_id")
+  slabFrom      Decimal  @map("slab_from") @db.Decimal(15, 2)
+  slabTo        Decimal  @map("slab_to") @db.Decimal(15, 2)
+  commission    Decimal  @db.Decimal(5, 2) // Percentage
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("commission_slabs")
+}
+
+// Cold Call Management
+model ColdCall {
+  id              Int       @id @default(autoincrement())
+  name            String
+  phoneNumber     String    @map("phone_number")
+  email           String?
+  sourceId        Int?      @map("source_id")
+  agentId         Int?      @map("agent_id")
+  priority        String?   @default("Normal") // Normal/High/Low
+  status          String?   @default("pending")
+  comments        String?
+  isDeleted       Int       @default(0) @map("is_deleted")
+  deletedDate     DateTime? @map("deleted_date")
+  convertedToLead Boolean   @default(false) @map("converted_to_lead")
+  convertedAt     DateTime? @map("converted_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@map("cold_calls")
+}
+
+// DND Registry
+model DndList {
+  id          Int      @id @default(autoincrement())
+  phoneNumber String   @map("phone_number")
+  refType     String?  @map("ref_type") // leads/cold_calls
+  addedBy     Int?     @map("added_by")
+  reason      String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@unique([phoneNumber])
+  @@map("dnd_lists")
+}
+
+// Dump Calls (for recycling)
+model DumpCall {
+  id          Int      @id @default(autoincrement())
+  name        String
+  phoneNumber String   @map("phone_number")
+  email       String?
+  sourceId    Int?     @map("source_id")
+  agentId     Int?     @map("agent_id")
+  reason      String?
+  comments    String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("dump_calls")
+}
+
+// Penalty System
+model PenaltyLog {
+  id            Int       @id @default(autoincrement())
+  userId        Int       @map("user_id")
+  reason        String
+  penaltyAmount Decimal   @map("penalty_amount") @db.Decimal(10, 2)
+  penaltyDate   DateTime  @map("penalty_date")
+  status        String    @default("pending") // pending/paid/waived
+  issuedBy      Int       @map("issued_by")
+  paidAt        DateTime? @map("paid_at")
+  notes         String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  user          User      @relation(fields: [userId], references: [id])
+
+  @@map("penalty_logs")
+}
+
+// Activity Log (audit trail for automation)
+model ActivityLog {
+  id          Int      @id @default(autoincrement())
+  description String
+  subjectType String?  @map("subject_type") // Lead/User/Campaign/etc
+  subjectId   Int?     @map("subject_id")
+  causerType  String?  @map("causer_type") // User/System/Cron
+  causerId    Int?     @map("causer_id")
+  properties  Json?    // Additional context data
+  eventType   String?  @map("event_type") // created/updated/assigned/distributed/etc
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([subjectType, subjectId])
+  @@index([causerType, causerId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@map("activity_logs")
+}
