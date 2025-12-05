@@ -166,6 +166,8 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 export const login = asyncHandler(async (req: Request, res: Response) => {
   const { email, password }: LoginBody = req.body;
 
+  logger.info(`Login attempt for email: ${email}`);
+
   // Check if user exists
   const user = await prisma.user.findUnique({
     where: { 
@@ -188,15 +190,29 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     }
   });
 
-  if (!user || !user.isActive || user.deletedAt) {
+  if (!user) {
+    logger.warn(`Login failed: User not found for email ${email}`);
+    throw new CustomError('Invalid email or password', 401);
+  }
+
+  if (!user.isActive) {
+    logger.warn(`Login failed: User account inactive for email ${email}`);
+    throw new CustomError('Invalid email or password', 401);
+  }
+
+  if (user.deletedAt) {
+    logger.warn(`Login failed: User account deleted for email ${email}`);
     throw new CustomError('Invalid email or password', 401);
   }
 
   // Check password
   const isPasswordValid = await bcrypt.compare(password, user.password);
   if (!isPasswordValid) {
+    logger.warn(`Login failed: Invalid password for email ${email}`);
     throw new CustomError('Invalid email or password', 401);
   }
+
+  logger.info(`Password validated successfully for user: ${email}`);
 
   // Extract roles and permissions safely
   const roles = user.roles?.map((userRole: any) => userRole.role?.name).filter(Boolean) || [];

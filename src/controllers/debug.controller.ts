@@ -3,8 +3,32 @@ import bcrypt from 'bcryptjs';
 import prisma from '../config/database';
 import { asyncHandler } from '../middleware/error.middleware';
 
+// @desc    Check users in database
+// @route   GET /api/v1/debug/users
+// @access  Public (remove this in production!)
+export const checkUsers = asyncHandler(async (req: Request, res: Response) => {
+  const users = await prisma.user.findMany({
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      isActive: true,
+      deletedAt: true,
+      createdAt: true,
+    }
+  });
+
+  const userCount = await prisma.user.count();
+
+  res.json({
+    success: true,
+    count: userCount,
+    users: users
+  });
+});
+
 // @desc    Debug auth - Check user and password
-// @route   POST /api/v1/auth/debug
+// @route   POST /api/v1/debug/auth
 // @access  Public (remove this in production!)
 export const debugAuth = asyncHandler(async (req: Request, res: Response) => {
   const { email } = req.body;

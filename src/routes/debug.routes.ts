@@ -1,9 +1,10 @@
 import { Router } from 'express';
-import { debugAuth } from '../controllers/debug.controller';
+import { debugAuth, checkUsers } from '../controllers/debug.controller';
 
 const router = Router();
 
-// Debug endpoint - REMOVE IN PRODUCTION
+// Debug endpoints - REMOVE IN PRODUCTION
+router.get('/users', checkUsers);
 router.post('/auth', debugAuth);
 
 export default router;
