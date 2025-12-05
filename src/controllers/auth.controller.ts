@@ -166,12 +166,10 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 export const login = asyncHandler(async (req: Request, res: Response) => {
   const { email, password }: LoginBody = req.body;
 
-  // Check if user exists and is active
+  // Check if user exists
   const user = await prisma.user.findUnique({
     where: { 
-      email,
-      isActive: true,
-      deletedAt: null
+      email
     },
     include: {
       roles: {
@@ -190,7 +188,7 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     }
   });
 
-  if (!user) {
+  if (!user || !user.isActive || user.deletedAt) {
     throw new CustomError('Invalid email or password', 401);
   }
 
@@ -200,17 +198,11 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     throw new CustomError('Invalid email or password', 401);
   }
 
-  // Update last login - temporarily disabled until schema update
-  // await prisma.user.update({
-  //   where: { id: user.id },
-  //   data: { lastLoginAt: new Date() }
-  // });
-
-  // Extract roles and permissions
-  const roles = user.roles.map((userRole: any) => userRole.role.name);
-  const permissions = user.roles.flatMap((userRole: any) => 
-    userRole.role.permissions.map((rolePermission: any) => rolePermission.permission.name)
-  );
+  // Extract roles and permissions safely
+  const roles = user.roles?.map((userRole: any) => userRole.role?.name).filter(Boolean) || [];
+  const permissions = user.roles?.flatMap((userRole: any) => 
+    userRole.role?.permissions?.map((rolePermission: any) => rolePermission.permission?.name).filter(Boolean) || []
+  ) || [];
 
   // Generate tokens
   const token = generateToken(user.id, user.email);
@@ -244,9 +236,7 @@ export const getMe = asyncHandler(async (req: Request, res: Response) => {
 
   const user = await prisma.user.findUnique({
     where: { 
-      id: userId,
-      isActive: true,
-      deletedAt: null
+      id: userId
     },
     include: {
       roles: {
@@ -269,11 +259,11 @@ export const getMe = asyncHandler(async (req: Request, res: Response) => {
     throw new CustomError('User not found', 404);
   }
 
-  // Extract roles and permissions
-  const roles = user.roles.map((userRole: any) => userRole.role.name);
-  const permissions = user.roles.flatMap((userRole: any) => 
-    userRole.role.permissions.map((rolePermission: any) => rolePermission.permission.name)
-  );
+  // Extract roles and permissions safely
+  const roles = user.roles?.map((userRole: any) => userRole.role?.name).filter(Boolean) || [];
+  const permissions = user.roles?.flatMap((userRole: any) => 
+    userRole.role?.permissions?.map((rolePermission: any) => rolePermission.permission?.name).filter(Boolean) || []
+  ) || [];
 
   res.status(200).json({
     success: true,
