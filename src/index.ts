@@ -59,7 +59,9 @@ const corsOptions = {
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      callback(null, true); // Allow all origins in development
+      // In production, we allow it for now based on your logic, 
+      // but ensure your frontend URL is in ALLOWED_ORIGINS env var
+      callback(null, true); 
     }
   },
   credentials: true,
@@ -151,18 +153,31 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
-// Start server
-app.listen(PORT, 'localhost', async () => {
-  // Connect to database
-  await connectDatabase();
-  
-  // Start job scheduler for automation
-  jobScheduler.start();
-  
-  logger.info(`🚀 Modern CRM API Server running on port ${PORT}`);
-  logger.info(`📍 Environment: ${process.env.NODE_ENV}`);
-  logger.info(`🔗 API Base URL: http://localhost:${PORT}${API_PREFIX}/${API_VERSION}`);
-  logger.info(`🏥 Health Check: http://localhost:${PORT}/health`);
-});
+// --- UPDATED STARTUP LOGIC ---
+
+const startServer = async () => {
+  try {
+    // 1. Connect to Database FIRST (Fail fast if DB is down)
+    await connectDatabase();
+    logger.info('✅ Database connected successfully');
+    
+    // 2. Start job scheduler
+    jobScheduler.start();
+    
+    // 3. Start Server with 0.0.0.0 binding (CRITICAL FIX)
+    app.listen(PORT, '0.0.0.0', () => {
+      logger.info(`🚀 Modern CRM API Server running on port ${PORT}`);
+      logger.info(`📍 Environment: ${process.env.NODE_ENV}`);
+      logger.info(`🔗 API Base URL: http://0.0.0.0:${PORT}${API_PREFIX}/${API_VERSION}`);
+      logger.info(`🏥 Health Check: http://0.0.0.0:${PORT}/health`);
+    });
+
+  } catch (error) {
+    logger.error('❌ Failed to start server:', error);
+    process.exit(1); // Exit with error code so Railway restarts the container
+  }
+};
+
+startServer();
 
 export default app;
