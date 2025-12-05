@@ -154,7 +154,7 @@ process.on('SIGINT', () => {
 });
 
 // Start server
-app.listen(PORT, 'localhost', async () => {
+app.listen(PORT, '0.0.0.0', async () => {
   // Connect to database
   await connectDatabase();
   
@@ -163,8 +163,8 @@ app.listen(PORT, 'localhost', async () => {
   
   logger.info(`🚀 Modern CRM API Server running on port ${PORT}`);
   logger.info(`📍 Environment: ${process.env.NODE_ENV}`);
-  logger.info(`🔗 API Base URL: http://localhost:${PORT}${API_PREFIX}/${API_VERSION}`);
-  logger.info(`🏥 Health Check: http://localhost:${PORT}/health`);
+  logger.info(`🔗 API Base URL: http://0.0.0.0:${PORT}${API_PREFIX}/${API_VERSION}`);
+  logger.info(`🏥 Health Check: http://0.0.0.0:${PORT}/health`);
 });
 
 export default app;
